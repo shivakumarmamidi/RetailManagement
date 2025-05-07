@@ -1,0 +1,202 @@
+#include <iostream>
+#include <fstream>
+#include <unordered_map>
+#include <string>
+#include <sstream>
+using namespace std;
+
+unordered_map<string, string> mp1;  
+unordered_map<string, float> mp2;   
+unordered_map<string, int> mp3;     
+unordered_map<string, float> msold; 
+unordered_map<string, int> soldp;
+const string DATA_FILE = "products.txt";
+
+int getValidIntegerInput(const string& prompt = "") {
+    int val;
+    while (true) {
+        if (!prompt.empty()) cout << prompt;
+        string input;
+        getline(cin, input);
+        stringstream ss(input);
+        if (ss >> val) return val;
+        cout << "Invalid input. Please enter a valid integer.\n";
+    }
+}
+
+float getValidFloatInput(const string& prompt) {
+    float val;
+    while (true) {
+        cout << prompt;
+        string input;
+        getline(cin, input);
+        stringstream ss(input);
+        if (ss >> val) return val;
+        cout << "Invalid input. Please enter a valid float.\n";
+    }
+}
+
+void ADD() {
+    string pid, pname;
+    cout << "Enter Product ID: ";
+    getline(cin, pid);
+    cout << "Enter Product Name: ";
+    getline(cin, pname);
+    float pprice = getValidFloatInput("Enter Product Price: ");
+    int pq = getValidIntegerInput("Enter Product Quantity: ");
+    mp1[pid] = pname;
+    mp2[pid] = pprice;
+    mp3[pid] = pq;
+    cout << "Product " << mp1[pid] << " added successfully.\n";
+}
+
+void UPDATE() {
+    string pid;
+    cout << "Enter the Product ID to be updated: ";
+    getline(cin, pid);
+    if (mp3.count(pid)) {
+        int pq = getValidIntegerInput("Enter the Quantity to be added: ");
+        mp3[pid] += pq;
+        cout << "Product stock updated successfully.\n";
+    } else {
+        cout << "Enter the correct product ID.\n";
+    }
+}
+
+void Process() {
+    string pid;
+    cout << "Enter the Product ID to be processed: ";
+    getline(cin, pid);
+    if (mp3.count(pid)) {
+        int qs = getValidIntegerInput("Enter quantity to be sold: ");
+        if (qs <= mp3[pid]) {
+            soldp[pid] += qs;
+            msold[pid] += mp2[pid] * qs;
+            mp3[pid] -= qs;
+            cout << "Sales processed for " << qs << " units of " << mp1[pid] << ".\n";
+        } else {
+            cout << "Insufficient stock.\n";
+        }
+    } else {
+        cout << "Enter the correct product ID.\n";
+    }
+}
+
+void Display() {
+    string pid;
+    cout << "Enter the Product ID: ";
+    getline(cin, pid);
+    if (mp3.count(pid)) {
+        printf("Product (ID: %s, Name: %s, Price: %.2f, Quantity: %d)\n",
+            pid.c_str(), mp1[pid].c_str(), mp2[pid], mp3[pid]);
+    } else {
+        cout << "Product not found.\n";
+    }
+}
+
+void DELETE() {
+    string pid;
+    cout << "Enter the Product ID to delete: ";
+    getline(cin, pid);
+    if (mp1.count(pid)) {
+        mp1.erase(pid);
+        mp2.erase(pid);
+        mp3.erase(pid);
+        msold.erase(pid);
+        soldp.erase(pid);
+        cout << "Product deleted successfully.\n";
+    } else {
+        cout << "Product not found.\n";
+    }
+}
+
+void SEARCH() {
+    string input;
+    cout << "Enter the Product ID or Name to search: ";
+    getline(cin, input);
+    bool found = false;
+    for (auto& pair : mp1) {
+        if (pair.first == input || pair.second == input) {
+            printf("Product (ID: %s, Name: %s, Price: %.2f, Quantity: %d)\n",
+                pair.first.c_str(), pair.second.c_str(), mp2[pair.first], mp3[pair.first]);
+            found = true;
+        }
+    }
+    if (!found) cout << "Product not found.\n";
+}
+
+void SalesReport() {
+    cout << "\nSales Report:\n";
+    if (msold.empty()) {
+        cout << "No sales have been processed yet.\n";
+    } else {
+        for (auto& pair : msold) {
+            string pid = pair.first;
+            printf("Product (ID: %s, Name: %s) - Units Sold: %d, Total Sales: %.2f\n",
+                pid.c_str(), mp1[pid].c_str(), soldp[pid], msold[pid]);
+        }
+    }
+}
+
+void saveProducts() {
+    ofstream fout(DATA_FILE);
+    if (!fout) {
+        cout << "Error saving products.\n";
+        return;
+    }
+    for (auto& pair : mp1) {
+        string pid = pair.first;
+        fout << pid << "," << mp1[pid] << "," << mp2[pid] << "," << mp3[pid] << "\n";
+    }
+    fout.close();
+    cout << "Products saved successfully.\n";
+}
+
+void loadProducts() {
+    ifstream fin(DATA_FILE);
+    if (!fin) {
+        cout << "No existing data found. Starting fresh.\n";
+        return;
+    }
+    string line;
+    while (getline(fin, line)) {
+        stringstream ss(line);
+        string pid, pname, price_str, qty_str;
+        if (getline(ss, pid, ',') && getline(ss, pname, ',') &&
+            getline(ss, price_str, ',') && getline(ss, qty_str)) {
+            mp1[pid] = pname;
+            mp2[pid] = stof(price_str);
+            mp3[pid] = stoi(qty_str);
+        }
+    }
+    fin.close();
+}
+
+int main() {
+    loadProducts();
+    while (true) {
+        cout << "\nRetail Management System Menu:\n"
+             << "1. Add a new product\n"
+             << "2. Update product stock\n"
+             << "3. Process a sale\n"
+             << "4. Display product details\n"
+             << "5. Delete a product\n"
+             << "6. Search for a product\n"
+             << "7. Generate sales report\n"
+             << "8. Save and exit\n"
+             << "Enter your choice: ";
+
+        int ch = getValidIntegerInput();
+        switch (ch) {
+            case 1: ADD(); break;
+            case 2: UPDATE(); break;
+            case 3: Process(); break;
+            case 4: Display(); break;
+            case 5: DELETE(); break;
+            case 6: SEARCH(); break;
+            case 7: SalesReport(); break;
+            case 8: saveProducts(); return 0;
+            default: cout << "Invalid choice. Please try again.\n";
+        }
+    }
+}
